@@ -11,10 +11,8 @@ Game::Game(const int& w, const int& h, const std::string& title) :
 }
 
 void Game::intialize_game() {
-	player_ = sf::CircleShape(50.0f);
-	player_.setFillColor(sf::Color::Red);
-	player_.setPosition(sf::Vector2f(static_cast<float>(width_) / 2, static_cast<float>(height_) / 2));
-
+	player_ = Entity(20.0f, sf::Color::Red, sf::Vector2f(30.0f, 30.0f), true);
+	
 	//
 	border_.resize(4);
 	for (auto& wall : border_) {
@@ -41,19 +39,6 @@ void Game::intialize_game() {
 
 }
 
-void Game::process_input(const sf::Event& e)
-{
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-		player_.move(sf::Vector2f(0.0f, -MOVE_SCALE));
-	} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-		player_.move(sf::Vector2f(0.0f, MOVE_SCALE));
-	} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-		player_.move(sf::Vector2f(-MOVE_SCALE, 0.0f));
-	} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-		player_.move(sf::Vector2f(MOVE_SCALE, 0.0f));
-	}
-}
-
 Game::~Game() {
 
 }
@@ -68,11 +53,11 @@ void Game::play()
 			if (event.type == sf::Event::Closed)
 				window_.close();
 
-			process_input(event);
+			player_.update(event, border_);
 		}
 
 		window_.clear();
-		window_.draw(player_);
+		window_.draw(player_.draw());
 
 		for (const auto& wall : border_) {
 			window_.draw(wall);

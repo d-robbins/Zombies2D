@@ -155,10 +155,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="SRC\entity.cpp" />
     <ClCompile Include="SRC\game.cpp" />
     <ClCompile Include="SRC\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\entity.h" />
     <ClInclude Include="SRC\game.h" />
   </ItemGroup>
   <ItemGroup>
