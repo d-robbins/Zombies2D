@@ -14,6 +14,8 @@ private:
 	
 	void move(const DIR& dir, const std::vector<sf::RectangleShape>& map);
 
+	void ez_switch_move(sf::Shape& target, const float& move_difference, const DIR& direction);
+
 public:
 	Entity(const float& size, const sf::Color& color, const sf::Vector2f& pos, const bool& control);
 	Entity() = default;
@@ -25,6 +27,8 @@ public:
 
 	bool controllable() const { return controllable_; }
 	void controllable(const bool& val) { controllable_ = val; }
+
+	bool intersects(const sf::CircleShape& target) { if (this->body_.getGlobalBounds().intersects(target.getGlobalBounds())) return true; }
 
 	float get_x() const { return body_.getPosition().x; }
 	float get_y() const { return body_.getPosition().y; }

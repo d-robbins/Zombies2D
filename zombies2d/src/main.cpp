@@ -1,9 +1,9 @@
-#include <iostream>
+  
+#include <SFML/Graphics.hpp>
 #include "game.h"
-
 int main() {
 	Game game(1024, 760, "Zombies2D");
-	game.play();
+  game.play();
 
-	return 0;
+  return 0;
 }

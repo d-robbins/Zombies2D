@@ -9,6 +9,7 @@ Entity::Entity(const float& size, const sf::Color& color, const sf::Vector2f& po
 }
 
 void Entity::update(const sf::Event& e, const std::vector<sf::RectangleShape>& map) {
+	// nest with if (controllable)
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 		move(DIR::UP, map);
 	}
@@ -26,46 +27,38 @@ void Entity::update(const sf::Event& e, const std::vector<sf::RectangleShape>& m
 void Entity::move(const DIR& dir, const std::vector<sf::RectangleShape>& map) {
 	sf::CircleShape copy = body_;
 
-	switch (dir) {
-	case DIR::UP:
-		copy.move(sf::Vector2f(0.0f, -MOVE_DIF));
-		break;
-	case DIR::DOWN:
-		copy.move(sf::Vector2f(0.0f, MOVE_DIF));
-		break;
-	case DIR::LEFT:
-		copy.move(sf::Vector2f(-MOVE_DIF, 0.0f));
-		break;
-	case DIR::RIGHT:
-		copy.move(sf::Vector2f(MOVE_DIF, 0.0f));
-		break;
-	default: break;
-	}
+	ez_switch_move(copy, MOVE_DIF, dir);
 
 	bool good_move = true;
 
+	// collision detection
 	for (const auto& wall : map) {
 		if (copy.getGlobalBounds().intersects(wall.getGlobalBounds())) {
 			good_move = false;
 			break;
 		}
 	}
-	
+
 	if (good_move) {
-		switch (dir) {
-		case DIR::UP:
-			body_.move(sf::Vector2f(0.0f, -MOVE_DIF));
-			break;
-		case DIR::DOWN:
-			body_.move(sf::Vector2f(0.0f, MOVE_DIF));
-			break;
-		case DIR::LEFT:
-			body_.move(sf::Vector2f(-MOVE_DIF, 0.0f));
-			break;
-		case DIR::RIGHT:
-			body_.move(sf::Vector2f(MOVE_DIF, 0.0f));
-			break;
-		default: break;
-		}
+		ez_switch_move(body_, MOVE_DIF, dir);
+	}
+}
+
+
+void Entity::ez_switch_move(sf::Shape& target, const float& move_difference, const DIR& direction) {
+	switch (direction) {
+	case DIR::UP:
+		target.move(sf::Vector2f(0.0f, -move_difference));
+		break;
+	case DIR::DOWN:
+		target.move(sf::Vector2f(0.0f, move_difference));
+		break;
+	case DIR::LEFT:
+		target.move(sf::Vector2f(-move_difference, 0.0f));
+		break;
+	case DIR::RIGHT:
+		target.move(sf::Vector2f(move_difference, 0.0f));
+		break;
+	default: break;
 	}
 }

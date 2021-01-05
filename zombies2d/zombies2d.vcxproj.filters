@@ -47,7 +47,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\player.png">
+    <Font Include="arial.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="src\player.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
