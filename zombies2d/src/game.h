@@ -1,76 +1,69 @@
 #pragma once
 
+// (1) framerate stuff
+// https://github.com/SFML/SFML-Game-Development-Book/blob/master/07_Gameplay/Source/Application.cpp
+
+#include <SFML/System/Time.hpp>
 #include <iostream>
 #include <string>
-#include <vector>
+#include <unordered_map>
 #include <utility>
- 
+#include <vector>
+
 #include "entity.h"
 
-const std::string PLAYER_TEX = "res/player.png";
+const sf::Time TimePerFrame = sf::seconds(1.f / 60.f);
 const float MOVE_SCALE = 10.0f;
 const float ZOMBIE_SIZE = 10.0f;
 
 struct Bullet {
-	sf::CircleShape bbullet_;
-	std::string btype_;
+  sf::CircleShape bbullet_;
+  std::string btype_;
 };
 
-class Gun {
-private:
-	std::string gun_name_;
-	std::string bullet_type_;
-	int mag_size_;
-	double bullet_damage_;
+struct Gun {};
 
-public:
-	Gun(const std::string& name, const std::string& bullet_type, const int& mag, const double& dmg);
-	Gun() : gun_name_("n/a"), bullet_type_("n/a"), mag_size_(-1), bullet_damage_(-1) {}
-	~Gun() {}
-
-	// load guns from file
-
-	std::string get_name() const { return gun_name_; }
+struct Player {
+  Entity self_;
 };
 
-// TODO: make zombies entities
+class Game {
+ private:
+  int width_, height_;
+  std::string name_;
 
-//class Zombie {
-//private:
-//	sf::CircleShape body_;
-//	float health_;
-//public:
-//	Zombie(const sf::Vector2f& pos, const float& hp);
-//	~Zombie() {}
-//
-//	void update(const Entity& player);
-//};
+  sf::RenderWindow window_;
+  sf::Font game_font_;
 
-class Game
-{
-private:
-	int round_ = 1;
-	int selection_ = 0;
+  sf::Text game_info;
 
-	int width_, height_;
-	std::string name_;
+  sf::Text mStatisticsText;
+  sf::Time mStatisticsUpdateTime;
+  std::size_t mStatisticsNumFrames;
 
-	sf::RenderWindow window_;
-	sf::Font game_font_;
+  Player player_;
 
-	Entity player_;
+  std::unordered_map<int, bool> keys;
+  std::list<int> changedKeys;
 
-	std::vector<sf::RectangleShape> border_;
+  std::vector<sf::RectangleShape> border_;
 
-	std::pair<Gun, Gun> weapons_;
-	
-	void intialize_game_board();
-	sf::Text& format_gun_stats(sf::Text& blank_text);
+  void intialize_game_board();
+  void poll();
+  void render();
 
-public:
-	Game(const int& w, const int& h, const std::string& title);
-	~Game();
-	
-	void play();
+  void updateStatistics(sf::Time dt);
+
+  void intialize_texts(sf::Text& text, const int& fontsz, sf::Uint32 style,
+                       const sf::Color& color);
+
+  void process_input();
+
+  sf::Text& format_gun_stats(sf::Text& blank_text);
+
+ public:
+  Game(const int& w, const int& h, const std::string& title);
+  ~Game();
+
+  void play();
 };
-
