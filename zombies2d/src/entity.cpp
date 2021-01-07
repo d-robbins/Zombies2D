@@ -28,6 +28,27 @@ void Entity::move(const DIR& dir, const std::vector<sf::RectangleShape>& map) {
   }
 }
 
+void Entity::move(const sf::Vector2f& dir,
+                  const std::vector<sf::RectangleShape>& map) {
+  sf::CircleShape copy = body_;
+
+  copy.move(dir);
+
+  bool good_move = true;
+
+  // collision detection
+  for (const auto& wall : map) {
+    if (copy.getGlobalBounds().intersects(wall.getGlobalBounds())) {
+      good_move = false;
+      break;
+    }
+  }
+
+  if (good_move) {
+    body_.move(dir);
+  }
+}
+
 void Entity::ez_switch_move(sf::Shape& target, const float& move_difference,
                             const DIR& direction) {
   switch (direction) {

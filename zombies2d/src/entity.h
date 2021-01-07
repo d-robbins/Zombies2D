@@ -19,10 +19,12 @@ class Entity {
  public:
   Entity(const float& size, const sf::Color& color, const sf::Vector2f& pos,
          const bool& control);
-  Entity() = default;
+  Entity() {}
   ~Entity() {}
 
   void move(const DIR& dir, const std::vector<sf::RectangleShape>& map);
+  void move(const sf::Vector2f& dir,
+            const std::vector<sf::RectangleShape>& map);
 
   sf::CircleShape& draw() { return body_; }
 

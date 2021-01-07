@@ -1,23 +1,20 @@
 #include "game.h"
 
 Game::Game(const int &w, const int &h, const std::string &title)
-    : width_(w),
-      height_(h),
-      name_(title),
-      weapons_(std::make_pair(Gun(), Gun())) {
+    : width_(w), height_(h), name_(title) {
   window_.create(sf::VideoMode(width_, height_), name_);
   if (!game_font_.loadFromFile("arial.ttf")) {
     std::cout << "error opening font file\n";
   }
   window_.setFramerateLimit(60);
 
-  mStatisticsText.setFont(game_font_);
-  mStatisticsText.setCharacterSize(24);
-  mStatisticsText.setFillColor(sf::Color::Red);
-  mStatisticsText.setStyle(sf::Text::Bold | sf::Text::Underlined);
-
   player_.self_ =
-      Entity(20.0f, sf::Color::Red, sf::Vector2f(30.0f, 30.0f), true);
+      Entity(20.0f, sf::Color::Red, sf::Vector2f(600.0f, 300.0f), true);
+
+  player_.gun_.damage_ = 10.0f;
+  player_.gun_.gname_ = "Glock-22";
+  player_.gun_.bullets_ = 30;
+
   intialize_game_board();
 
   intialize_texts(game_info, 24, sf::Text::Bold | sf::Text::Underlined,
@@ -62,6 +59,17 @@ void Game::poll() {
   while (window_.pollEvent(event)) {
     if (event.type == sf::Event::Closed) window_.close();
 
+    if (event.type == sf::Event::MouseButtonPressed) {
+      sf::Vector2f current_dir = player_.self_.get_pos();
+      sf::Vector2f mpos = sf::Vector2f((float)sf::Mouse::getPosition().x,
+                                       (float)sf::Mouse::getPosition().y);
+
+      sf::Vector2f dir =
+          sf::Vector2f((current_dir.x - mpos.x), (current_dir.y - mpos.y));
+      std::cout << dir.x << " " << dir.y << std::endl;
+      player_.fire_gun(bullet_queue_, dir);
+    }
+
     if (event.type == sf::Event::EventType::KeyPressed) {
       if (keys.count(event.key.code) == 0) {
         keys[event.key.code] = true;
@@ -83,8 +91,16 @@ void Game::render() {
   window_.clear();
   window_.draw(player_.self_.draw());
 
+  for (auto &zombie : zombies_) {
+    window_.draw(zombie.self_.draw());
+  }
+
   for (const auto &wall : border_) {
     window_.draw(wall);
+  }
+
+  for (const auto &bullet : bullet_queue_) {
+    window_.draw(bullet.bbullet_);
   }
 
   window_.draw(format_gun_stats(game_info));
@@ -94,14 +110,48 @@ void Game::render() {
 
 sf::Text &Game::format_gun_stats(sf::Text &blank_text) {
   std::string printfo = "\t\t\tWEAPONS: FIRST: ";
-
-  printfo += weapons_.first.get_name();
-  printfo += " SECOND: ";
-  printfo += weapons_.second.get_name();
-
+  printfo += player_.gun_.gname_;
   blank_text.setString(printfo);
-
   return blank_text;
+}
+
+void Game::start_rounds() {
+  if (zombies_.size() == 0) {
+    game_round_++;
+    spawn_zombies();
+  }
+}
+
+void Game::spawn_zombies() {
+  int num_to_spawn;
+  srand(time(0));
+  num_to_spawn = rand() % (3 * game_round_) + game_round_;
+  std::cout << "Game Round: " << game_round_ << std::endl;
+  std::cout << "Spawning: " << num_to_spawn << std::endl;
+  for (int i = 0; i < num_to_spawn; i++) {
+    Zombie z;
+    z.self_ = Entity(20.0f, sf::Color::Yellow,
+                     sf::Vector2f(30.0f, 30.f + (float)(60 * i)), false);
+    zombies_.push_back(z);
+  }
+}
+
+void Game::update_zombies() {
+  sf::Vector2f direction;
+  sf::Vector2f current_dir;
+  sf::Vector2f player_dir = player_.self_.get_pos();
+  for (auto &z : zombies_) {
+    current_dir = z.self_.get_pos();
+    direction = sf::Vector2f((player_dir.x - current_dir.x),
+                             (player_dir.y - current_dir.y));
+    z.self_.move(direction, border_);
+  }
+}
+
+void Game::update_bullet_queue() {
+  for (auto &b : bullet_queue_) {
+    b.bbullet_.move(b.dir_.x / 100.0f, b.dir_.y / 100.0f);
+  }
 }
 
 Game::~Game() {}
@@ -120,22 +170,26 @@ void Game::play() {
     while (timeSinceLastUpdate > TimePerFrame) {
       timeSinceLastUpdate -= TimePerFrame;
 
+      // poll for event updates
       poll();
 
+      // process those event updates
       process_input();
     }
 
+    start_rounds();
+
+    update_zombies();
+
+    update_bullet_queue();
+
+    // update time & statistics stuff
     updateStatistics(TimePerFrame);
+
+    // render to screen
     render();
   }
 }
-
-Gun::Gun(const std::string &name, const std::string &bullet_type,
-         const int &mag, const double &dmg)
-    : gun_name_(name),
-      bullet_type_(bullet_type),
-      mag_size_(mag),
-      bullet_damage_(dmg) {}
 
 void Game::updateStatistics(sf::Time dt) {
   // (1) TODO: understand this code better
@@ -175,5 +229,18 @@ void Game::process_input() {
       default:
         break;
     }
+  }
+}
+
+void Player::fire_gun(std::vector<Bullet> &queue, const sf::Vector2f &dir) {
+  if (gun_.bullets_ > 0) {
+    gun_.bullets_ -= 1;
+    Bullet b;
+    b.bbullet_ = sf::CircleShape(3.0f);
+    b.bbullet_.setPosition(self_.get_pos());
+    b.bbullet_.setFillColor(sf::Color::Red);
+    b.dir_ = dir;
+
+    queue.push_back(b);
   }
 }
