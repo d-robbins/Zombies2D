@@ -31,12 +31,15 @@ struct Gun {
 };
 
 struct Zombie {
+  float health_ = 100.0f;
   Entity self_;
 };
 
 struct Player {
   Gun gun_;
   Entity self_;
+
+  int points_;
 
   void fire_gun(std::vector<Bullet>& queue, const sf::Vector2f& dir);
 };
@@ -73,7 +76,7 @@ class Game {
 
   void process_input();
 
-  sf::Text& format_gun_stats(sf::Text& blank_text);
+  sf::Text& format_game_stats(sf::Text& blank_text);
 
   void start_rounds();
 
@@ -83,7 +86,9 @@ class Game {
 
   void update_bullet_queue();
 
-  void update_dt();
+  void update_dt() { dt_ = dtClock_.restart().asSeconds(); }
+
+  void detect_hit();
 
  public:
   Game(const int& w, const int& h, const std::string& title);

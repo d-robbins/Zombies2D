@@ -33,6 +33,11 @@ class Entity {
 
   void speed(const float& sp) { speed_ = sp; }
 
+  void set_color(const sf::Uint8& r, const sf::Uint8& g, const sf::Uint8& b) {
+      sf::Color col(r, g, b, 255);
+      body_.setFillColor(col);
+  }
+
   bool intersects(const sf::CircleShape& target) {
     if (this->body_.getGlobalBounds().intersects(target.getGlobalBounds()))
       return true;
