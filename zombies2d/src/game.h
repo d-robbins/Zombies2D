@@ -1,27 +1,26 @@
 #pragma once
 
-// (1) framerate stuff
-// https://github.com/SFML/SFML-Game-Development-Book/blob/master/07_Gameplay/Source/Application.cpp
-
 #include <stdlib.h>
 
 #include <SFML/System.hpp>
 #include <SFML/System/Time.hpp>
+#include <cmath>
 #include <iostream>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <cmath>
 
 #include "entity.h"
 
-const sf::Time TimePerFrame = sf::seconds(1.f / 60.f);
 const float MOVE_SCALE = 10.0f;
 const float ZOMBIE_SIZE = 10.0f;
 
 struct Bullet {
   sf::CircleShape bbullet_;
   sf::Vector2f dir_;
+  float speed_;
 };
 
 struct Gun {
@@ -48,14 +47,13 @@ class Game {
   std::string name_;
   int game_round_ = 0;
 
+  sf::Clock dtClock_;
+  float dt_;
+
   sf::RenderWindow window_;
   sf::Font game_font_;
 
   sf::Text game_info;
-
-  sf::Text mStatisticsText;
-  sf::Time mStatisticsUpdateTime;
-  std::size_t mStatisticsNumFrames;
 
   Player player_;
 
@@ -69,8 +67,6 @@ class Game {
   void intialize_game_board();
   void poll();
   void render();
-
-  void updateStatistics(sf::Time dt);
 
   void intialize_texts(sf::Text& text, const int& fontsz, sf::Uint32 style,
                        const sf::Color& color);
@@ -86,6 +82,8 @@ class Game {
   void update_zombies();
 
   void update_bullet_queue();
+
+  void update_dt();
 
  public:
   Game(const int& w, const int& h, const std::string& title);

@@ -9,7 +9,7 @@ Game::Game(const int &w, const int &h, const std::string &title)
   window_.setFramerateLimit(60);
 
   player_.self_ =
-      Entity(20.0f, sf::Color::Red, sf::Vector2f(600.0f, 300.0f), true);
+      Entity(20.0f, sf::Color::Red, sf::Vector2f(600.0f, 300.0f), true, 120.0f);
 
   player_.gun_.damage_ = 10.0f;
   player_.gun_.gname_ = "Glock-22";
@@ -17,9 +17,7 @@ Game::Game(const int &w, const int &h, const std::string &title)
 
   intialize_game_board();
 
-  intialize_texts(game_info, 24, sf::Text::Bold | sf::Text::Underlined,
-                  sf::Color::Red);
-  intialize_texts(mStatisticsText, 24, sf::Text::Bold | sf::Text::Underlined,
+  intialize_texts(game_info, 24, sf::Text::Bold,
                   sf::Color::Red);
 }
 
@@ -61,12 +59,14 @@ void Game::poll() {
 
     if (event.type == sf::Event::MouseButtonPressed) {
       sf::Vector2f current_dir = player_.self_.get_pos();
-      sf::Vector2f mpos = sf::Vector2f((float)sf::Mouse::getPosition().x,
-                                       (float)sf::Mouse::getPosition().y);
+      sf::Vector2f mpos = sf::Vector2f(event.mouseButton.x,
+          event.mouseButton.y);
 
       sf::Vector2f dir =
-          sf::Vector2f((current_dir.x - mpos.x), (current_dir.y - mpos.y));
+          sf::Vector2f((mpos.x - current_dir.x), (mpos.y - current_dir.y));
+      dir /= std::sqrt((powf(dir.x, 2.f) + powf(dir.y, 2.f)));
       std::cout << dir.x << " " << dir.y << std::endl;
+      std::cout << "Bullet Queue: " << bullet_queue_.size() << std::endl;
       player_.fire_gun(bullet_queue_, dir);
     }
 
@@ -104,13 +104,13 @@ void Game::render() {
   }
 
   window_.draw(format_gun_stats(game_info));
-  window_.draw(mStatisticsText);
   window_.display();
 }
 
 sf::Text &Game::format_gun_stats(sf::Text &blank_text) {
-  std::string printfo = "\t\t\tWEAPONS: FIRST: ";
+  std::string printfo = "WEAPONS: FIRST: ";
   printfo += player_.gun_.gname_;
+  printfo += " BULLETS LEFT: " + std::to_string(player_.gun_.bullets_);
   blank_text.setString(printfo);
   return blank_text;
 }
@@ -131,7 +131,7 @@ void Game::spawn_zombies() {
   for (int i = 0; i < num_to_spawn; i++) {
     Zombie z;
     z.self_ = Entity(20.0f, sf::Color::Yellow,
-                     sf::Vector2f(30.0f, 30.f + (float)(60 * i)), false);
+                     sf::Vector2f(30.0f, 30.f + (float)(60 * i)), false, 100.0f);
     zombies_.push_back(z);
   }
 }
@@ -142,40 +142,62 @@ void Game::update_zombies() {
   sf::Vector2f player_dir = player_.self_.get_pos();
   for (auto &z : zombies_) {
     current_dir = z.self_.get_pos();
+    
     direction = sf::Vector2f((player_dir.x - current_dir.x),
                              (player_dir.y - current_dir.y));
-    z.self_.move(direction, border_);
+
+    direction /= std::sqrt((powf(direction.x, 2.f) + powf(direction.y, 2.f)));
+    z.self_.move(direction, border_, dt_);
   }
 }
 
 void Game::update_bullet_queue() {
   for (auto &b : bullet_queue_) {
-    b.bbullet_.move(b.dir_.x / 100.0f, b.dir_.y / 100.0f);
+    b.bbullet_.move(sf::Vector2f(b.dir_.x, b.dir_.y) * b.speed_ * dt_);
+  }
+
+  bool bullets_good = false;
+  while (!bullets_good) {
+    int index = -1;
+    for (int i = 0; i < bullet_queue_.size(); ++i) {
+      for (const auto &wall : border_) {
+        if (bullet_queue_[i].bbullet_.getGlobalBounds().intersects(
+                wall.getGlobalBounds())) {
+          index = i;
+          break;
+        }
+      }
+
+      if (index != -1) break;
+    }
+    if (index != -1) {
+      if (bullet_queue_.size() > 1) {
+        bullet_queue_[index] = bullet_queue_.back();
+        bullet_queue_.pop_back();
+      } else {
+        bullet_queue_.pop_back();
+      }
+    } else {
+      bullets_good = true;
+    }
   }
 }
+
+void Game::update_dt() { dt_ = dtClock_.restart().asSeconds(); }
 
 Game::~Game() {}
 
 void Game::play() {
   window_.setKeyRepeatEnabled(false);
 
-  // (1) see todo in updateStatistics()
-  sf::Clock clock;
-  sf::Time timeSinceLastUpdate = sf::Time::Zero;
-
   while (window_.isOpen()) {
-    sf::Time elapsedTime = clock.restart();
-    timeSinceLastUpdate += elapsedTime;
+    update_dt();
 
-    while (timeSinceLastUpdate > TimePerFrame) {
-      timeSinceLastUpdate -= TimePerFrame;
+    // poll for event updates
+    poll();
 
-      // poll for event updates
-      poll();
-
-      // process those event updates
-      process_input();
-    }
+    // process those event updates
+    process_input();
 
     start_rounds();
 
@@ -183,23 +205,8 @@ void Game::play() {
 
     update_bullet_queue();
 
-    // update time & statistics stuff
-    updateStatistics(TimePerFrame);
-
     // render to screen
     render();
-  }
-}
-
-void Game::updateStatistics(sf::Time dt) {
-  // (1) TODO: understand this code better
-  mStatisticsUpdateTime += dt;
-  mStatisticsNumFrames += 1;
-  if (mStatisticsUpdateTime >= sf::seconds(1.0f)) {
-    mStatisticsText.setString("FPS: " + std::to_string(mStatisticsNumFrames));
-
-    mStatisticsUpdateTime -= sf::seconds(1.0f);
-    mStatisticsNumFrames = 0;
   }
 }
 
@@ -215,16 +222,16 @@ void Game::process_input() {
   for (const auto &i : keys) {
     switch (i.first) {
       case (sf::Keyboard::Key::W):
-        player_.self_.move(DIR::UP, border_);
+        player_.self_.move(DIR::UP, border_, dt_);
         break;
       case (sf::Keyboard::Key::S):
-        player_.self_.move(DIR::DOWN, border_);
+        player_.self_.move(DIR::DOWN, border_, dt_);
         break;
       case (sf::Keyboard::Key::A):
-        player_.self_.move(DIR::LEFT, border_);
+        player_.self_.move(DIR::LEFT, border_, dt_);
         break;
       case (sf::Keyboard::Key::D):
-        player_.self_.move(DIR::RIGHT, border_);
+        player_.self_.move(DIR::RIGHT, border_, dt_);
         break;
       default:
         break;
@@ -239,6 +246,7 @@ void Player::fire_gun(std::vector<Bullet> &queue, const sf::Vector2f &dir) {
     b.bbullet_ = sf::CircleShape(3.0f);
     b.bbullet_.setPosition(self_.get_pos());
     b.bbullet_.setFillColor(sf::Color::Red);
+    b.speed_ = 1000.0f;
     b.dir_ = dir;
 
     queue.push_back(b);
